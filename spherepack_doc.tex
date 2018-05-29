@@ -1,0 +1,292 @@
+\newcommand{\re}{{\mathbb{R}}}
+\newcommand{\ve}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\ba}{\ve{a}}
+\newcommand{\bb}{\ve{b}}
+\newcommand{\bA}{\ve{A}}
+\newcommand{\bu}{\ve{u}}
+\newcommand{\bv}{\ve{v}}
+\newcommand{\br}{\ve{r}}
+\newcommand{\bt}{\ve{t}}
+\newcommand{\bn}{\ve{n}}
+\newcommand{\bc}{\ve{c}}
+\newcommand{\bff}{\ve{f}}
+\newcommand{\bx}{\ve{x}}
+\newcommand{\hx}{\hat{x}}
+\newcommand{\hbx}{\hat{\ve{x}}}
+\newcommand{\bS}{\ve{S}}
+\newcommand{\bs}{\ve{s}}
+\newcommand{\bU}{\ve{U}}
+\newcommand{\bV}{\ve{V}}
+\newcommand{\bQ}{\ve{Q}}
+\newcommand{\by}{\ve{y}}
+\newcommand{\be}{\ve{e}}
+\newcommand{\bP}{\ve{P}}
+\newcommand{\bGG}{\ve{G}}
+\newcommand{\bRR}{\ve{R}}
+\newcommand{\bq}{\ve{q}}
+\newcommand{\bLambda}{\ve{\boldsymbol{\Lambda}}}
+\newcommand{\bSigma}{\ve{\boldsymbol{\Sigma}}}
+\newcommand{\bdelta}{\ve{\boldsymbol{\delta}}}
+\newcommand{\beps}{\ve{\boldsymbol{\varepsilon}}}
+\newcommand{\nlat}{\mathit{nlat}}
+\newcommand{\nlon}{\mathit{nlon}}
+
+
+\documentclass[11pt]{article}
+
+
+\usepackage{color}
+\usepackage{pifont}
+%%% PAGE DIMENSIONS
+
+\usepackage{enumerate}
+\usepackage{ulem}
+
+%%% PACKAGES
+\usepackage{booktabs} 
+\usepackage{array} 
+\usepackage{paralist} 
+\usepackage{verbatim} 
+\usepackage{tabu}
+\usepackage{epsf}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{ulem}
+\usepackage{stmaryrd}
+\usepackage{setspace}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{transparent}
+\usepackage{sectsty}
+\usepackage{color}
+\usepackage{rotate} 
+\usepackage{breqn}
+   
+
+\fancypagestyle{plain}{\fancyfoot[C]{\vspace*{1.5\baselineskip}\thepage}}
+
+\textwidth = 6.5 in
+\textheight = 8 in
+\oddsidemargin = 0.0 in
+\evensidemargin = 0.0 in
+\topmargin = 0.0 in
+\headheight = 0.0 in
+\headsep = 0.0 in
+\parskip = 0.0in
+\parindent = 0.0in
+
+
+\begin{document}
+
+\begin{center}
+	{\Large Spherical harmonics and {\texttt{SPHEREPACK}}}\\
+	\smallskip
+	Spencer H. Bryngelson
+\end{center}
+
+Capsules in the three-dimensional cell code are represented using spherical harmonics,
+as compared to Fourier harmonics in the two-dimensional analog. \\
+
+Per the {\texttt{SPHEREPACK}} documentation: 
+\begin{quote}
+	Scalar and vector harmonic analyses are used for problem solving in spherical coordinates 
+	in the same way that Fourier analysis is used in Cartesian coordinates. Thus the package 
+	provides the same high level of accuracy that the spectral method provides in Cartesian 
+	coordinates. Furthermore, accuracy is uniform on the sphere and independent of the location 
+	of the poles. This eliminates a number of computational difficulties associated with solving partial 
+	differential equations on the sphere including the accuracy and stability problems that can be created 
+	by the clustering of points near the pole. Interpolation and smoothing on the sphere are also 
+	significantly facilitated by harmonic analysis (Swarztrauber, 1979). Indeed the package includes 
+	programs for interpolating between Gaussian and equally-spaced latitudinal grids.
+\end{quote}
+
+The spherical harmonics are a complete set of orthogonal functions on the sphere, 
+and thus may be used to represent functions defined on the surface of a sphere, just as 
+circular functions (sines and cosines) are used to represent functions on a circle via Fourier series. \\
+
+The notation used for \texttt{SPHEREPACK} routines follows: 
+\begin{itemize}
+	\item \texttt{sh} or \texttt{vh} denote scalar and vector harmonic transforms respectively. 
+	\item \texttt{a} or \texttt{s} denotes analysis (physical to wave space) or synthesis
+ (wave to physical space). 
+	\item \texttt{g} or \texttt{e} denotes Gaussian or equally-spaced latitudinal grid.
+ 	\item \texttt{c} or \texttt{s} denotes whether or not quantities are computed or stored.
+\end{itemize}
+
+In practice, scalar spherical harmonic analyses are used to transform the 
+capsule surface(s) from physical to wave space where the derivatives are computed
+for the constitutive model, then syntheses are used to transform back to physical space and 
+advect the surface(s) according to $\text{d}_t \bx = \bu(\bx)$. 
+
+\subsection*{Associated Legendgre polynomials and Gaussian weights}
+
+Here $\bar{P}_n^m$ are the associated Legendre functions defined by
+\begin{gather}
+	\bar{P}_n^m(\theta) = \sqrt{ \frac{2n+1}{2} \frac{ (n-m)! }{ (n+m)! } } \frac{\sin^m \theta }{ 2^n \, n!}
+	\frac{ \text{d}^{n+m} (x^2 -1)^n }{\text{d}x^{n+m}} ,
+\end{gather}
+where $x = \cos \theta$, and $\theta$ and $w$ are the Gaussian points and weights on the sphere,
+\begin{align*}
+	\text{Gaussian points in radians:} \qquad &\theta(1), \theta(2), \ldots, \theta(\nlat), \\
+	\text{Corresponding Gaussian weights:} \qquad &w(1), w(2), \ldots, w(\nlat).
+\end{align*}
+
+\subsection*{\texttt{SHAGS}: Scalar spherical harmonic {\color{red}analysis} on a Gaussian latitudinal grid}
+
+This routine is repeatedly used to transform from physical to wave space on a Gaussian grid.
+The input is the physical capsule collocation points $\bx$ and the output are the arrays of spherical
+harmonic coefficients $\ba$ and $\bb$. Associated Legendre polynomials are stored rather
+than recomputed. \\
+
+The physical points $\bx$ are arranged in an array of dimension $\nlat \times \nlon$ and
+ the coefficient arrays $\ba$ and $\bb$ are of dimension $\nlat \times \nlat$, where $\nlat$ is the number of 
+lateral modes, so long as the number of longitudinal modes $\nlon = 2 \, \nlat$ is even. They are defined 
+element-wise by
+\begin{gather}
+	a(m+1,n+1) = \sum_{i=1}^{\nlat} c(m+1,i) \, w(i) \, \bar{P}_n^m(\theta[i]) 
+	\quad \text{for} \quad m=0,\nlat-1; \; n=m,\nlat-1, \\
+	b(m+1,n+1) = \sum_{i=1}^{\nlat} s(m+1,i) \, w(i) \, \bar{P}_n^m(\theta[i]) 
+	\quad \text{for} \quad m=0,\nlat-1; \; n=m,\nlat-1,
+\end{gather}
+where $c$ and $s$ are the cosine and sine part of the Fourier transform of $\bx$, 
+\begin{align}
+	c(m,i) &= \frac{2}{\nlon} \sum_{j=1}^\nlon \frac{x(i,j)}{k(j)} \cos\left[ \frac{2 \pi (m-1)(j-1)}{\nlon} \right] 
+	\quad \text{where} \quad
+	k(j) = \begin{cases} 2 & j=1 \, \text{or} \, \nlon \\ 1 & \text{otherwise,} \end{cases}\\
+	s(m,i) &= \frac{2}{\nlon} \sum_{j=2}^\nlon x(i,j) \sin\left[ \frac{2 \pi (m-1)(j-1)}{\nlon} \right].
+\end{align}
+Note that $\ba$ and $\bb$ are triangular, and thus only $\nlat^2$ unique harmonic 
+coefficients exist for $\nlat \times \nlon = 2 \times \nlat^2$ collocation points. 
+
+\subsection*{\texttt{SHSGS}: Scalar spherical harmonic {\color{red}synthesis} on a Gaussian latitudinal grid}
+
+This routine is used to transform from spherical harmonic coefficients $\ba$ and $\bb$ to 
+physical points $x(i,j)$.  The physical points are given by
+\begin{multline}
+	x(i,j) = \sum_{n=0}^{\nlat-1} \frac{1}{2} \, \bar{P}_{n}^0(\theta[i]) \, a(1,n+1) + \\
+		\sum_{m=1}^{\nlat-1} \sum_{n=m}^{\nlat-1} \bar{P}_{n}^m(\theta[i])  \left(a(m+1,n+1) \cos\left( m \, \phi[j] \right)
+		- b(m+1,n+1) \sin\left( m \, \phi[j] \right) \right),
+\end{multline}
+which are the Gaussian colatitudinal points $\theta(i)$ and longitudinal points $\phi(j) = 2 \pi (j-1) / \nlon$.
+	
+	
+\subsection*{Basics}
+
+\begin{gather}
+	f_{i,j} = f(\theta_i,\phi_j)  = \sum_{n=0}^N \sum_{m=-n}^n c_{m,n} Y_n^m (\theta_i,\phi_j) 
+\end{gather}
+
+\begin{align}
+	Y_n^m (\theta_i, \phi_j) &= \bar{P}_n^m (\theta_i) e^{i m \phi_j} \\
+	&= \sqrt{ \frac{2n+1}{4\pi} \frac{(n-m)!}{(n+m)!} } \bar{P}_n^m (\cos \theta_i) e^{i m \phi_j}
+\end{align}
+
+
+Least squares harmonic analysis: On a grid with $2N$ longitudes and $N$ latitudes
+the discrete harmonic basis consists of the functions
+\begin{gather}
+	\cos m \phi \bar{P}_n^m(\theta) \quad \text{and} \quad \sin m \phi \bar{P}_n^m (\theta)
+\end{gather}
+for $m \le n$ and $n \le N$, which yields a total of $N^2$ basis functions. However,
+this is half the number of grid points $2N^2$, which implies the interpolation problem
+on the sphere does not have a solution.
+
+\subsection*{Orthogonality}
+
+The associated Legendre polynomials are orthogonal on $[-1,1]$ with weighting function 1,
+\begin{gather}
+	\int_{-1}^1 \bar{P}_n^m (x) \bar{P}_{n'}^m (x) \, \text{d}x = 
+	\frac{2}{2n+1} \frac{ (n+m)! }{ (n-m)! }  \, \delta_{n \, n'},
+\end{gather}
+and orthogonal on $[-1,1]$ w.r.t $m$ with weight function $(1-x^2)^{-1}$,
+\begin{gather}
+	\int_{-1}^1 \bar{P}_n^m (x) \bar{P}_{n'}^m (x) \, \frac{\text{d}x}{1-x^2} = 
+	\frac{1}{m} \frac{ (n+m)! }{ (n-m)! } \, \delta_{m \, m'}.
+\end{gather}
+The spherical harmonics $Y_n^m$ are normalized such that
+\begin{align*}
+	\int_{0}^{2\pi} &\int_{0}^\pi Y_n^m (\theta,\phi) \bar{Y}_{n'}^{m'} (\theta,\phi) \, \sin\theta \, \text{d}\theta \text{d}\phi \\
+	&= \int_0^{2\pi} \int_{-1}^1  Y_n^m (\theta,\phi) \bar{Y}_{n'}^{m'} (\theta,\phi) \, \text{d}(\cos \theta) \text{d} \phi \\
+	&= \delta_{m \, m'} \delta_{n \, n'},
+\end{align*}
+where the bar denotes the complex conjugate. \\
+
+Define:\\
+
+$x(i,j)$: a two or three dimensional array (see input parameter
+        $nt$) that contains the discrete function to be analyzed.
+            $x(i,j)$ contains the value of the function at the gaussian
+            point $\theta(i)$ and longitude point $\phi(j) = (j-1)2\pi/\nlon$
+            the index ranges are defined above at the input parameter
+            $isym$.
+            
+\subsection*{Manufactured test solution}
+Linearization of the dynamics of the full system proceeds as:
+\begin{gather}
+	u(\bx + \bdelta) = \frac{ \partial (\bx + \bdelta) }{ \partial t } = \frac{ \partial \bx }{ \partial t } + A \bdelta + \mathcal{O}(\bdelta^2)
+\label{e:full}
+\end{gather}
+which has the nonlinear manufactured solution
+\begin{gather}
+	u(\bx) = \bx + \bx^3.
+\end{gather}
+So then column $i$ of $A$ is simply
+\begin{gather}
+	A_i = \frac{ u(\bx+\bdelta_i) - u(\bx)}{ \delta_i },
+\end{gather}
+where $\delta_i = \lvert \bdelta_i \rvert$, which for the given manufactured solution
+should recover
+\begin{gather}
+	A_i = \frac{ (1+3\bx^2)\bdelta_i + 3 \bx \bdelta_i^2+ \bdelta_i^3 }{ \delta_i } 
+	      \approx \frac{ (1+3\bx^2)\bdelta_i }{ \delta_i } = c_x \frac{ \bdelta_i}{ \delta_i }
+\end{gather}	
+for sufficiently small $\delta_i$, where $c_x$ is a specific constant that 
+depends only on the base configuration $\bx$. Similarly, for a case with 
+$\bdelta_{ij} = \bdelta_i + \bdelta_j$,
+which was not used in the construction of $A$,
+\begin{align*}
+	u(\bx + \bdelta_{ij}) &= \bx + \bdelta_{ij} + \bx^3 + 3 \bx^2 \bdelta_{ij}  + 3 \bdelta_{ij}^2 \bx + \bdelta_{ij}^3, \\
+	N(\bdelta_{ij}) = u(\bx + \bdelta_{ij}) - u(\bx) &= c_x \bdelta_{ij} + 3 \bx \bdelta_{ij}^2 + \bdelta_{ij}^3,
+\end{align*}
+which is the exact nonlinear solution. The linear approximation due to $A$ is given by
+\begin{gather}
+	\frac{\partial \beps}{\partial t} = A \beps + \mathcal{O}(\beps^2),
+\end{gather}
+where $\beps = \bdelta_{ij}$ in this case.  Then the velocity due to $\bdelta_{ij}$ 
+according to the linearization is
+\begin{align*}
+	L(\bdelta_{ij}) &= A_i \bdelta_i + A_j \bdelta_j \\
+	&= c_x (\bdelta_i + \bdelta_j)
+\end{align*}
+and the linearization error is
+\begin{align*}
+	E(\bdelta_{ij}) &= N(\bdelta_{ij}) - L(\bdelta_{ij}) \\
+		&= 3 \bx \bdelta_{ij}^2 + \bdelta_{ij}^3 \\
+		&= \mathcal{O}(\bdelta_{ij}^2)
+\end{align*} 
+	
+Similarly one can recast collocation points $\bx$ in terms of spherical harmonic coefficients
+$\ba$, in which case (\ref{e:full}) can be rewritten as
+\begin{gather}
+	u(\ba + \bdelta) = \frac{ \partial (\ba + \bdelta) }{ \partial t } = \frac{ \partial \ba }{ \partial t } + A \bdelta + \mathcal{O}(\bdelta^2),
+\label{e:fulla}
+\end{gather}
+where $A$ is distinct from the $A$ in (\ref{e:full}) but contains the same information 
+about the linearization of the dynamics.  In this case, $\bdelta_i$ is interpreted
+as disturbances of spherical mode coefficients, and thus periodic spherical modes on the
+unit sphere.  The linearization process is identical, but the calculation of $u( \cdotp )$ is not.
+The procedure is:
+\begin{enumerate}
+	\item Transform spherical mode coefficients to physical points $\ba \to \bx$
+	\item Compute $u(\bx) = \bx + \bx^3$
+	\item Reverse transform $u(\bx) \to \ba + \ba^3 = u(\ba)$
+\end{enumerate}
+at which point the same linearization error holds.
+
+
+
+
+
+\end{document}
